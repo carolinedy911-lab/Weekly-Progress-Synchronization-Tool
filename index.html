@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCAD 周报编辑器</title>
+<style>
+  :root{
+    --page-bg:#f4f4f9;
+    --card:#ffffff;
+    --text:#000000;
+    --text-2:#4e5561;
+    --text-3:#8a919f;
+    /* 报告卡片内的文字颜色（由「Aa 字体」面板调节） */
+    --c-title:#000000;
+    --c-body:#000000;
+    --line:#eceef2;
+    --purple:#6c4bf4;
+    --amber:#f2a33c;
+    --up:#d83931;
+    --down:#1a9c5b;
+    /* 主题变量（默认：星紫） */
+    --hero-1:#7b5cff; --hero-2:#8f7bff; --hero-3:#a58cff;
+    --hero-shadow:rgba(108,75,244,.22);
+    --no-1:#7b5cff; --no-2:#a58cff; --no-shadow:rgba(108,75,244,.32);
+    --bar:#f2a33c;
+    --bubble-bg:#f8f9fd;
+    --accent:#6c4bf4; --accent-line:#cfc4ff; --accent-bg:#f7f5ff;
+  }
+  /* ============ 配色主题 ============ */
+  body[data-theme="blue"]{
+    --page-bg:#f2f6fd;
+    --hero-1:#2563eb; --hero-2:#4f83ff; --hero-3:#6fa3ff;
+    --hero-shadow:rgba(37,99,235,.22);
+    --no-1:#2563eb; --no-2:#5b9bff; --no-shadow:rgba(37,99,235,.3);
+    --bar:#ffb02e; --bubble-bg:#f5f8ff;
+    --accent:#2563eb; --accent-line:#bcd3ff; --accent-bg:#f0f5ff;
+  }
+  body[data-theme="teal"]{
+    --page-bg:#f0f8f6;
+    --hero-1:#0e9f8c; --hero-2:#2cc4ae; --hero-3:#5adcc8;
+    --hero-shadow:rgba(14,159,140,.22);
+    --no-1:#0e9f8c; --no-2:#3fd0bd; --no-shadow:rgba(14,159,140,.3);
+    --bar:#ff8f3c; --bubble-bg:#f3faf8;
+    --accent:#0c8f7f; --accent-line:#b5e6dd; --accent-bg:#eefaf7;
+  }
+  body[data-theme="orange"]{
+    --page-bg:#fdf6f0;
+    --hero-1:#ef6c1a; --hero-2:#ff9340; --hero-3:#ffb066;
+    --hero-shadow:rgba(239,108,26,.22);
+    --no-1:#ef6c1a; --no-2:#ff9d5c; --no-shadow:rgba(239,108,26,.3);
+    --bar:#2563eb; --bubble-bg:#fff7f0;
+    --accent:#e8641a; --accent-line:#ffd2b3; --accent-bg:#fff4ea;
+  }
+  body[data-theme="red"]{
+    --page-bg:#fdf4f5;
+    --hero-1:#de3345; --hero-2:#ff6b7d; --hero-3:#ff93a1;
+    --hero-shadow:rgba(222,51,69,.2);
+    --no-1:#de3345; --no-2:#ff7a8a; --no-shadow:rgba(222,51,69,.28);
+    --bar:#f2a33c; --bubble-bg:#fff4f5;
+    --accent:#d83931; --accent-line:#f6c1bd; --accent-bg:#fff1f0;
+  }
+  body[data-theme="dark"]{
+    --page-bg:#1b1e26;
+    --card:#242833;
+    --text:#e9ecf3;
+    --text-2:#b7bdcb;
+    --text-3:#7d8595;
+    --c-title:#e9ecf3;
+    --c-body:#c3cad8;
+    --line:#333a48;
+    --hero-1:#333b55; --hero-2:#454f75; --hero-3:#56628f;
+    --hero-shadow:rgba(0,0,0,.45);
+    --no-1:#3d4664; --no-2:#5a658f; --no-shadow:rgba(0,0,0,.4);
+    --bar:#f2a33c; --bubble-bg:#2b3140;
+    --accent:#a58cff; --accent-line:#4a4463; --accent-bg:#2b2a3a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    background:var(--page-bg);
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    color:var(--text);
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ================= 顶部工具栏 ================= */
+  .bar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:saturate(180%) blur(10px);
+    border-bottom:1px solid var(--line);
+    padding:10px 16px;
+  }
+  .bar-inner{max-width:1080px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .brand{font-size:14px;font-weight:700;margin-right:6px;letter-spacing:.5px;}
+  .brand small{font-weight:400;color:var(--text-3);font-size:11.5px;margin-left:6px;letter-spacing:0;}
+  .spacer{flex:1;}
+  .btn{
+    appearance:none;border:1px solid var(--line);background:#fff;color:var(--text-2);
+    font-size:12.5px;font-family:inherit;line-height:1;
+    padding:8px 12px;border-radius:20px;cursor:pointer;
+    transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:#cfd4e0;background:#fafbfe;color:var(--text);}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{
+    background:linear-gradient(135deg,#7b5cff,#a58cff);color:#fff;border-color:transparent;
+    box-shadow:0 2px 8px rgba(108,75,244,.3);font-weight:600;
+  }
+  .btn.primary:hover{filter:brightness(1.04);color:#fff;}
+  .btn.ghost-dash{border-style:dashed;color:var(--purple);border-color:#cfc4ff;}
+  .save-state{font-size:11.5px;color:var(--text-3);margin-left:2px;}
+  .toggle{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;user-select:none;padding:0 4px;}
+  .toggle input{accent-color:var(--purple);}
+
+  /* ================= 工作区 ================= */
+  .stage{padding:22px 14px 60px;}
+  .hint{
+    max-width:430px;margin:0 auto 12px;font-size:11.5px;color:var(--text-3);line-height:1.7;
+    background:#fff;border:1px dashed #dcdff0;border-radius:12px;padding:9px 12px;
+  }
+  .hint b{color:var(--purple);font-weight:600;}
+
+  /* ================= 报告卡片 ================= */
+  .card{
+    width:430px;max-width:100%;
+    margin:0 auto;
+    background:transparent;
+    color:var(--c-title);
+  }
+  [contenteditable]:focus{
+    outline:2px solid var(--accent-line);
+    outline-offset:2px;
+    border-radius:6px;
+    background:var(--accent-bg);
+  }
+
+  /* 头图是紫底白字，编辑态不能用浅色底（白字会被吃掉），改用深色蒙层 + 白色描边 */
+  .hero [contenteditable]:focus{
+    background:rgba(0,0,0,.26);
+    outline:2px solid rgba(255,255,255,.85);
+    color:#fff;
+    box-shadow:0 0 0 4px rgba(0,0,0,.10);
+  }
+  /* 头图里的 M9W2 胶囊本是奶白底深字，沿用白底更自然 */
+  .hero .badge:focus{
+    background:linear-gradient(135deg,#ffffff,#fff8ec);
+    outline:2px solid rgba(122,74,6,.45);
+    color:#7a4a06;
+    box-shadow:0 2px 8px rgba(0,0,0,.22);
+  }
+
+  .hero{
+    background:linear-gradient(135deg,var(--hero-1) 0%,var(--hero-2) 45%,var(--hero-3) 100%);
+    border-radius:16px;
+    padding:16px 20px 22px;
+    color:#fff;
+    box-shadow:0 6px 18px var(--hero-shadow);
+    margin-bottom:14px;
+    position:relative;
+  }
+  .hero .badge{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;font-weight:700;letter-spacing:1.5px;
+    background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,244,225,.95));
+    color:#7a4a06;border-radius:20px;padding:2px 12px;margin-bottom:32px;
+    box-shadow:0 2px 8px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  .hero .badge::before{
+    content:"";width:6px;height:6px;border-radius:50%;
+    background:#ff9f1c;box-shadow:0 0 6px #ffb84d;
+  }
+  .hero h1{font-size:var(--sz-h1,23px);font-weight:700;letter-spacing:1px;line-height:1.3;}
+  .hero .date{margin-top:8px;font-size:12px;color:rgba(255,255,255,.88);letter-spacing:.5px;}
+
+  .block{
+    background:var(--card);border-radius:16px;padding:18px 18px 12px;margin-bottom:14px;
+    box-shadow:0 2px 10px rgba(29,33,41,.04);
+  }
+  .sec-title{
+    display:flex;align-items:center;gap:8px;font-size:var(--sz-sec,16px);font-weight:700;margin-bottom:12px;
+  }
+  .sec-title::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--bar);flex-shrink:0;}
+
+  /* ================= 气泡（事项） ================= */
+  .bubble{
+    position:relative;
+    background:var(--bubble-bg);
+    border-radius:12px;
+    padding:12px 14px 12px 14px;
+    margin-bottom:10px;
+  }
+  .bubble:last-child{margin-bottom:4px;}
+  .bubble-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .bubble .no{
+    width:22px;height:22px;border-radius:8px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--no-1),var(--no-2));
+    color:#fff;font-size:12.5px;font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 6px var(--no-shadow);
+  }
+  .bubble .bubble-title{
+    font-size:var(--sz-bub,14.5px);font-weight:700;color:var(--c-title);flex:1;min-width:0;
+  }
+  .bubble .bubble-body{
+    font-size:var(--sz-body,13.5px);color:var(--c-body);
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .bubble .bubble-body b{color:var(--c-title);font-weight:700;}
+  .up{color:var(--up);font-weight:600;}
+  .down{color:var(--down);font-weight:600;}
+  .bubble:empty{display:none;}
+
+  /* 气泡操作按钮（悬停出现，导出/打印自动隐藏） */
+  .ops{
+    position:absolute;top:8px;right:8px;display:flex;gap:4px;
+    opacity:0;transition:.15s;
+  }
+  .bubble:hover .ops{opacity:1;}
+  .ops button{
+    width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+    background:#fff;color:var(--text-3);font-size:11px;line-height:1;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;padding:0;
+  }
+  .ops button:hover{color:var(--accent);border-color:var(--accent-line);background:var(--accent-bg);}
+  .ops button.del:hover{color:#d83931;border-color:#f3c6c3;background:#fff5f4;}
+
+  .add-bubble{
+    display:block;width:100%;text-align:center;
+    border:1px dashed #d7daea;background:transparent;color:var(--text-3);
+    font-family:inherit;font-size:12.5px;border-radius:10px;padding:8px;cursor:pointer;
+    margin:2px 0 6px;transition:.15s;
+  }
+  .add-bubble:hover{color:var(--accent);border-color:var(--accent-line);background:var(--accent-bg);}
+
+  /* 配色主题选择器 */
+  .themes{display:flex;align-items:center;gap:6px;padding:0 4px;}
+  .themes .lbl{font-size:12px;color:var(--text-3);margin-right:1px;}
+  .swatch{
+    width:18px;height:18px;border-radius:50%;cursor:pointer;padding:0;
+    border:2px solid #fff;box-shadow:0 0 0 1px var(--line);transition:.15s;
+  }
+  .swatch:hover{transform:scale(1.15);}
+  .swatch.on{box-shadow:0 0 0 2px var(--purple), 0 1px 4px rgba(0,0,0,.15);}
+
+  .sec-ops{display:flex;justify-content:flex-end;margin-top:2px;opacity:0;transition:.15s;}
+  .block:hover .sec-ops{opacity:1;}
+  .sec-ops button{
+    border:none;background:transparent;color:var(--text-3);font-size:11.5px;
+    font-family:inherit;cursor:pointer;padding:4px 6px;border-radius:6px;
+  }
+  .sec-ops button:hover{color:#d83931;background:#fff5f4;}
+
+  /* ================= 弹出面板（字体 / 更多） ================= */
+  .pop{
+    position:fixed;z-index:70;display:none;width:292px;
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 14px 38px rgba(20,24,40,.16);padding:12px;
+  }
+  .pop.open{display:block;}
+  .pop .row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .pop .row:last-child{margin-bottom:0;}
+  .pop .k{font-size:12px;color:var(--text-3);width:44px;flex-shrink:0;}
+  .pop-tip{font-size:11px;color:var(--text-3);line-height:1.6;margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);}
+  .seg{display:flex;gap:3px;background:#f4f5fa;border-radius:10px;padding:3px;}
+  .seg button{
+    border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text-2);
+    padding:5px 11px;border-radius:8px;cursor:pointer;line-height:1;
+  }
+  .seg button:hover{color:var(--text);}
+  .seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1);font-weight:600;}
+  .csw{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;}
+  .csw.on{box-shadow:0 0 0 2px var(--purple);}
+  .csw-custom{
+    width:22px;height:22px;border:none;background:transparent;padding:0;cursor:pointer;
+    border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--line);
+  }
+  .csw-custom::-webkit-color-swatch-wrapper{padding:0;}
+  .csw-custom::-webkit-color-swatch{border:none;border-radius:50%;}
+  .csw-custom::-moz-color-swatch{border:none;border-radius:50%;}
+
+  .menu{position:relative;}
+  .menu-panel{
+    position:absolute;right:0;top:calc(100% + 8px);z-index:70;display:none;min-width:172px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 14px 38px rgba(20,24,40,.16);padding:6px;
+  }
+  .menu-panel.open{display:block;}
+  .menu-panel button{
+    display:block;width:100%;text-align:left;border:none;background:transparent;
+    font-family:inherit;font-size:12.5px;color:var(--text-2);
+    padding:8px 10px;border-radius:8px;cursor:pointer;
+  }
+  .menu-panel button:hover{background:#f5f6fb;color:var(--text);}
+  .menu-check{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-2);padding:8px 10px;cursor:pointer;}
+  .menu-check input{accent-color:var(--purple);}
+  .menu-sep{height:1px;background:var(--line);margin:5px 8px;}
+
+  /* ================= 历史记录弹窗 / 日历 ================= */
+  .modal{position:fixed;inset:0;z-index:90;display:none;background:rgba(20,24,40,.42);padding:26px 16px;overflow:auto;}
+  .modal.open{display:block;}
+  .modal-box{
+    max-width:660px;margin:0 auto;background:#fff;border-radius:18px;padding:18px 18px 16px;
+    box-shadow:0 24px 60px rgba(0,0,0,.24);
+  }
+  .modal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .modal-head h3{font-size:15px;font-weight:700;}
+  .modal-head .sub{font-size:11.5px;color:var(--text-3);}
+  .modal-head .spacer{flex:1;}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .cal-head .m{font-size:13px;font-weight:600;}
+  .cal-head button{
+    border:1px solid var(--line);background:#fff;color:var(--text-2);width:26px;height:26px;
+    border-radius:8px;cursor:pointer;font-size:12px;line-height:1;padding:0;
+  }
+  .cal-head button:hover{border-color:#cfd4e0;color:var(--text);}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-cell{
+    position:relative;height:42px;border-radius:10px;background:#fafbfe;
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;color:var(--text-3);
+  }
+  .cal-cell.head{background:transparent;height:auto;font-size:11px;color:var(--text-3);}
+  .cal-cell.blank{background:transparent;}
+  .cal-cell.has{background:var(--accent-bg);color:var(--accent);font-weight:700;cursor:pointer;}
+  .cal-cell.has::after{content:"";position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:var(--accent);}
+  .cal-cell.sel{outline:2px solid var(--purple);outline-offset:-1px;}
+  .cal-cell:not(.blank):not(.head):hover{background:#f1f2f8;}
+  .cal-cell.has:hover{background:#e9e3ff;}
+
+  .hist-list{margin-top:14px;max-height:300px;overflow:auto;padding-right:2px;}
+  .hist-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;background:#fafbfe;margin-bottom:8px;}
+  .hist-item .hb{
+    flex:none;font-size:10.5px;font-weight:700;letter-spacing:.5px;
+    background:linear-gradient(135deg,var(--no-1),var(--no-2));color:#fff;
+    border-radius:7px;padding:3px 7px;
+  }
+  .hist-item .meta{flex:1;min-width:0;}
+  .hist-item .t{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hist-item .d{font-size:11.5px;color:var(--text-3);}
+  .hist-item .mini{
+    border:1px solid var(--line);background:#fff;color:var(--text-2);font-family:inherit;
+    font-size:11.5px;padding:6px 9px;border-radius:16px;cursor:pointer;white-space:nowrap;
+  }
+  .hist-item .mini:hover{border-color:#cfd4e0;color:var(--text);}
+  .hist-item .mini.load{color:var(--accent);border-color:var(--accent-line);background:var(--accent-bg);}
+  .hist-item .mini.del:hover{color:#d83931;border-color:#f3c6c3;background:#fff5f4;}
+  .empty{font-size:12.5px;color:var(--text-3);text-align:center;padding:24px 0;}
+  .modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap;}
+
+  /* ================= 底部 ================= */
+  .foot{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:11.5px;color:var(--text-3);padding:4px 6px 0;
+  }
+  .foot .team{letter-spacing:.5px;}
+
+  /* ================= 导出 / 打印状态 ================= */
+  body.exporting .ops,
+  body.exporting .add-bubble,
+  body.exporting .sec-ops,
+  body.exporting .sec-remove,
+  body.exporting .pop,
+  body.exporting .menu-panel{display:none !important;}
+  body.exporting [contenteditable]:focus{outline:none;background:transparent;}
+  body.exporting #stage-pad-top{display:none;}
+
+  @media print{
+    .bar,.hint,.ops,.add-bubble,.sec-ops,.pop,.menu-panel,.modal{display:none !important;}
+    body{background:#fff;}
+    .stage{padding:0;}
+    .card{width:430px;}
+    .block{box-shadow:none;border:1px solid #eee;break-inside:avoid;}
+    .hero{box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .block{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+  @page{margin:10mm;}
+</style>
+</head>
+<body>
+
+<!-- ============ 工具栏 ============ -->
+<div class="bar">
+  <div class="bar-inner">
+    <div class="brand">PCAD 周报编辑器<small>编辑 → 导出图片 → 发群</small></div>
+    <span class="save-state" id="saveState"></span>
+    <span class="spacer"></span>
+    <div class="themes" id="themes" title="配色主题（会随 JSON 一起保存）">
+      <span class="lbl">配色</span>
+      <button class="swatch on" data-theme="purple" title="星紫" style="background:linear-gradient(135deg,#7b5cff,#a58cff)"></button>
+      <button class="swatch" data-theme="blue" title="海蓝" style="background:linear-gradient(135deg,#2563eb,#6fa3ff)"></button>
+      <button class="swatch" data-theme="teal" title="青碧" style="background:linear-gradient(135deg,#0e9f8c,#5adcc8)"></button>
+      <button class="swatch" data-theme="orange" title="暖橙" style="background:linear-gradient(135deg,#ef6c1a,#ffb066)"></button>
+      <button class="swatch" data-theme="red" title="绯红" style="background:linear-gradient(135deg,#de3345,#ff93a1)"></button>
+      <button class="swatch" data-theme="dark" title="墨夜（深色）" style="background:linear-gradient(135deg,#333b55,#56628f)"></button>
+    </div>
+    <button class="btn" id="btnTypo">Aa 文字</button>
+    <button class="btn" id="btnHistory">历史记录</button>
+    <div class="menu">
+      <button class="btn" id="btnMore">更多 ▾</button>
+      <div class="menu-panel" id="morePanel">
+        <button id="btnPrint">打印 / PDF</button>
+        <button id="btnExportJson">导出 JSON（备份/模板）</button>
+        <button id="btnImportJson">导入 JSON</button>
+        <button id="btnNew">新建（清空内容）</button>
+        <div class="menu-sep"></div>
+        <label class="menu-check"><input type="checkbox" id="chkColor" checked>自动涨跌着色</label>
+      </div>
+    </div>
+    <button class="btn" id="btnCopy">复制图片</button>
+    <button class="btn primary" id="btnPng">导出图片</button>
+  </div>
+</div>
+
+<!-- ============ 字体 / 字号 / 字色 ============ -->
+<div class="pop" id="popTypo">
+  <div class="row"><span class="k">标题</span>
+    <div class="seg">
+      <button data-g="h1" data-v="s">小</button>
+      <button data-g="h1" data-v="m" class="on">中</button>
+      <button data-g="h1" data-v="l">大</button>
+    </div>
+  </div>
+  <div class="row"><span class="k">正文</span>
+    <div class="seg">
+      <button data-g="body" data-v="s">小</button>
+      <button data-g="body" data-v="m" class="on">中</button>
+      <button data-g="body" data-v="l">大</button>
+    </div>
+  </div>
+  <div class="row"><span class="k">标题色</span>
+    <div class="seg" style="gap:7px;padding:4px 7px;">
+      <button class="csw on" data-for="title" data-c="#000000" style="background:#000000" title="纯黑（默认）"></button>
+      <button class="csw" data-for="title" data-c="#1d2129" style="background:#1d2129" title="近黑"></button>
+      <button class="csw" data-for="title" data-c="#4e5561" style="background:#4e5561" title="深灰"></button>
+      <button class="csw" data-for="title" data-c="#8a919f" style="background:#8a919f" title="浅灰"></button>
+      <button class="csw" data-for="title" data-c="__accent" style="background:var(--accent)" title="跟随主题色"></button>
+      <input type="color" class="csw-custom" data-for="title" value="#000000" title="自定义颜色">
+    </div>
+  </div>
+  <div class="row"><span class="k">正文色</span>
+    <div class="seg" style="gap:7px;padding:4px 7px;">
+      <button class="csw on" data-for="body" data-c="#000000" style="background:#000000" title="纯黑（默认）"></button>
+      <button class="csw" data-for="body" data-c="#1d2129" style="background:#1d2129" title="近黑"></button>
+      <button class="csw" data-for="body" data-c="#4e5561" style="background:#4e5561" title="深灰"></button>
+      <button class="csw" data-for="body" data-c="#8a919f" style="background:#8a919f" title="浅灰"></button>
+      <button class="csw" data-for="body" data-c="__accent" style="background:var(--accent)" title="跟随主题色"></button>
+      <input type="color" class="csw-custom" data-for="body" value="#000000" title="自定义颜色">
+    </div>
+  </div>
+  <div class="pop-tip">标题档位会同时缩放区块标题和气泡标题。字体固定为苹方。深色主题下若选了深色字，会自动改用浅色，保证可读。</div>
+</div>
+
+<!-- ============ 历史记录 ============ -->
+<div class="modal" id="histModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>历史记录</h3>
+      <span class="sub" id="histCount"></span>
+      <span class="spacer"></span>
+      <button class="btn" id="btnArchive">存档本周</button>
+      <button class="btn" id="btnCloseHist">关闭</button>
+    </div>
+    <div class="cal-head">
+      <button id="calPrev">‹</button>
+      <span class="m" id="calTitle"></span>
+      <button id="calNext">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="hist-list" id="histList"></div>
+    <div class="modal-foot">
+      <button class="btn" id="btnHistExport">导出全部备份</button>
+      <button class="btn" id="btnHistImport">导入备份</button>
+      <button class="btn" id="btnHistClear">清空历史</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+  <div class="hint" id="hint">
+    直接在卡片上改字即可，改动<b>自动保存</b>在本机浏览器。
+    正文支持：<b>Enter</b> 换行 · <b>**文字**</b> 加粗 · 自动识别 <b>+8% / -3%</b> 着色 ·
+    右上可调 <b>配色</b> / <b>字号</b> / <b>字色</b>；每次「导出图片」会自动<b>存入历史</b>，点「历史记录」可按日历翻看、随时载回。
+  </div>
+  <div id="stage-pad-top"></div>
+
+  <!-- ============ 报告卡片 ============ -->
+  <div class="card" id="card">
+    <div class="hero">
+      <span class="badge" contenteditable="true" data-k="badge">M9W2</span>
+      <h1 contenteditable="true" data-k="title">PCAD游戏周进展</h1>
+      <div class="date" contenteditable="true" data-k="sub">2026.09.11 ｜ 统计周期 9.7–9.10 ｜ 月同比对比 8.10–8.13</div>
+    </div>
+    <div id="sections"></div>
+    <div class="foot">
+      <span class="team" contenteditable="true" data-f="team">PCAD游戏提收小分队</span>
+      <span contenteditable="true" data-f="date">2026.09.11</span>
+    </div>
+  </div>
+</div>
+
+<script src="lib/html2canvas.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  var LS_KEY = "pcad-weekly-report-v1";
+  var THEME_KEY = "pcad-weekly-report-theme";
+  var STYLE_KEY = "pcad-weekly-report-style";
+  var HIST_KEY = "pcad-weekly-report-history";
+
+  /* ---------------- 配色主题 ---------------- */
+  var theme = "purple";
+  var THEMES = ["purple","blue","teal","orange","red","dark"];
+  function applyTheme(t, persist){
+    theme = THEMES.indexOf(t) >= 0 ? t : "purple";
+    document.body.setAttribute("data-theme", theme);
+    $$("#themes .swatch").forEach(function(s){ s.classList.toggle("on", s.dataset.theme === theme); });
+    if (persist !== false){
+      try { localStorage.setItem(THEME_KEY, theme); } catch(e){}
+    }
+    applyTypo(typo, false);   // 深色/浅色切换后重算字色
+  }
+
+  /* ---------------- 字号 / 字色 ---------------- */
+  var SIZES = {
+    h1:  {s:"20px", m:"23px", l:"27px"},
+    sec: {s:"15px", m:"16px", l:"18px"},
+    bub: {s:"13.5px", m:"14.5px", l:"16px"},
+    body:{s:"12.5px", m:"13.5px", l:"15px"}
+  };
+  var typo = { h1:"m", body:"m", titleColor:"#000000", bodyColor:"#000000" };
+
+  function accentColor(){
+    var v = getComputedStyle(document.body).getPropertyValue("--accent").trim();
+    return v || "#6c4bf4";
+  }
+  function isDarkColor(hex){
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return false;
+    var r = parseInt(hex.substr(1,2),16), g = parseInt(hex.substr(3,2),16), b = parseInt(hex.substr(5,2),16);
+    return (0.299*r + 0.587*g + 0.114*b) < 150;
+  }
+  function typoColorOf(el){
+    return el.dataset.for === "title" ? typo.titleColor : typo.bodyColor;
+  }
+
+  function applyTypo(t, persist){
+    typo = {
+      h1:   (t && t.h1)   || "m",
+      body: (t && t.body) || "m",
+      titleColor: (t && (t.titleColor || t.color)) || "#000000",
+      bodyColor:  (t && (t.bodyColor  || t.color)) || "#000000"
+    };
+    var st = document.body.style;
+    st.setProperty("--sz-h1",  (SIZES.h1[typo.h1]   || SIZES.h1.m));
+    st.setProperty("--sz-sec", (SIZES.sec[typo.h1]  || SIZES.sec.m));
+    st.setProperty("--sz-bub", (SIZES.bub[typo.h1]  || SIZES.bub.m));
+    st.setProperty("--sz-body",(SIZES.body[typo.body] || SIZES.body.m));
+    // 深色主题下若选了深色字 → 交回主题浅色，避免看不见
+    if (theme === "dark" && isDarkColor(typo.titleColor)) st.removeProperty("--c-title");
+    else st.setProperty("--c-title", typo.titleColor);
+    if (theme === "dark" && isDarkColor(typo.bodyColor)) st.removeProperty("--c-body");
+    else st.setProperty("--c-body", typo.bodyColor);
+
+    // 同步面板选中态（「跟随主题色」色块实时取主题色）
+    $$("#popTypo [data-g]").forEach(function(b){
+      b.classList.toggle("on", typo[b.dataset.g] === b.dataset.v);
+    });
+    $$("#popTypo .csw").forEach(function(s){
+      var val = (s.dataset.c === "__accent") ? accentColor() : s.dataset.c;
+      s.style.background = val;
+      s.classList.toggle("on", String(typoColorOf(s)).toLowerCase() === String(val).toLowerCase());
+    });
+    $$("#popTypo .csw-custom").forEach(function(ci){
+      var cur = typoColorOf(ci);
+      if (/^#[0-9a-fA-F]{6}$/.test(cur)) ci.value = cur;
+    });
+    if (persist !== false){
+      try { localStorage.setItem(STYLE_KEY, JSON.stringify(typo)); } catch(e){}
+    }
+  }
+
+  /* ---------------- 历史存档 ---------------- */
+  function histRead(){
+    try { var a = JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); return a && a.length !== undefined ? a : []; }
+    catch(e){ return []; }
+  }
+  function histWrite(list){
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(list.slice(0, 80))); } catch(e){}
+  }
+  function snapshot(label){
+    read();
+    return {
+      id: "h" + Date.now() + Math.floor(Math.random() * 1000),
+      ts: Date.now(),
+      label: label || "",
+      badge: state.badge || "",
+      title: state.title || "未命名",
+      theme: theme,
+      typo: JSON.parse(JSON.stringify(typo)),
+      state: JSON.parse(JSON.stringify(state))
+    };
+  }
+  function historyAdd(label, quiet){
+    var list = histRead();
+    var s = snapshot(label);
+    var today = new Date(s.ts).toDateString();
+    // 同一天 + 同一周次 → 覆盖，避免一次周报堆一堆
+    var dup = -1;
+    list.forEach(function(x, i){
+      if (x.badge && s.badge && x.badge === s.badge && new Date(x.ts).toDateString() === today) dup = i;
+    });
+    if (dup >= 0) list.splice(dup, 1);
+    list.unshift(s);
+    histWrite(list);
+    if (!quiet) flash("已存档：" + (s.badge || s.title));
+    return s;
+  }
+  function ymd(d){
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+  var calRef = new Date();
+  var calSel = null;
+
+  function renderCal(){
+    var map = {};
+    histRead().forEach(function(x){
+      var k = ymd(new Date(x.ts));
+      (map[k] = map[k] || []).push(x);
+    });
+    var y = calRef.getFullYear(), m = calRef.getMonth();
+    $("#calTitle").textContent = y + " 年 " + (m + 1) + " 月";
+    var first = new Date(y, m, 1).getDay();
+    var days = new Date(y, m + 1, 0).getDate();
+    var today = ymd(new Date());
+    var html = "";
+    ["日","一","二","三","四","五","六"].forEach(function(w){ html += '<div class="cal-cell head">' + w + "</div>"; });
+    for (var i = 0; i < first; i++) html += '<div class="cal-cell blank"></div>';
+    for (var d = 1; d <= days; d++){
+      var key = y + "-" + String(m+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+      var cls = "cal-cell" + (map[key] ? " has" : "") + (calSel === key ? " sel" : "") + (today === key ? " today" : "");
+      var tip = map[key] ? ' title="' + map[key].length + " 条存档" + '"' : "";
+      html += '<div class="' + cls + '" data-day="' + key + '"' + tip + ">" + d + "</div>";
+    }
+    $("#calGrid").innerHTML = html;
+    renderHistList();
+  }
+
+  function renderHistList(){
+    var all = histRead();
+    $("#histCount").textContent = all.length ? "共 " + all.length + " 条" : "";
+    var list = calSel ? all.filter(function(x){ return ymd(new Date(x.ts)) === calSel; }) : all;
+    var host = $("#histList");
+    if (!list.length){
+      host.innerHTML = '<div class="empty">' + (calSel ? "这天没有存档" : "还没有存档。点「存档本周」或每次导出图片时自动记一条。") + "</div>";
+      return;
+    }
+    host.innerHTML = list.map(function(x){
+      var d = new Date(x.ts);
+      var time = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+      var n = x.state && x.state.sections ? x.state.sections.length : 0;
+      return '<div class="hist-item" data-id="' + x.id + '">' +
+        '<span class="hb">' + esc(x.badge || "—") + "</span>" +
+        '<div class="meta"><div class="t">' + esc(x.title) + "</div>" +
+        '<div class="d">' + ymd(d) + " " + time + " · " + n + " 个区块" + (x.label ? " · " + esc(x.label) : "") + "</div></div>" +
+        '<button class="mini load" data-act="load">载入</button>' +
+        '<button class="mini" data-act="dl">JSON</button>' +
+        '<button class="mini del" data-act="del">删除</button>' +
+      "</div>";
+    }).join("");
+  }
+
+  /* ---------------- 默认内容（本周示例，可直接改） ---------------- */
+  var DEFAULT = {
+    badge: "M9W2",
+    title: "PCAD游戏周进展",
+    sub: "2026.09.11 ｜ 统计周期 9.7–9.10 ｜ 月同比对比 8.10–8.13",
+    team: "PCAD游戏提收小分队",
+    footDate: "2026.09.11",
+    sections: [
+      { title: "一、收入进展", bubbles: [
+        { title: "整体收入", body: "本周收入（9.7–9.10）：日耗 621 万，周同比 -10% / 月同比 -7%；AMS 6687 万，周同比 -1% / 月同比 -5%。" },
+        { title: "小游戏", body: "日耗 385 万，周同比 -10% / 月同比 持平；AMS 5367 万，周同比 -3% / 月同比 -6%，份额 7%。" },
+        { title: "手游", body: "日耗 215 万，周同比 -10% / 月同比 -16%；AMS 1234 万，周同比 +4% / 月同比 -2%，份额 17%。" }
+      ]},
+      { title: "二、事项进展", bubbles: [
+        { title: "场景重组特征", body:
+          "①场景重组特征 / 下周三完成上报开发\n" +
+          "②针对南区部分客户配置（PCAD 信息流场景提价）进行 AB 实验 / 效果已回收有正向，本周沟通完剩下的客户，下周启动新的商品配置\n" +
+          "③游戏行业新鲜度放宽 / 本周 rehash 至 20%\n" +
+          "④游戏正向信号人群新鲜度放宽 / 启动 5%，PCAD 大盘消耗 +0.5%，游戏消耗不显著 +1.5%\n" +
+          "⑤粗排 LTR 优化 / GMV 暂不显著无法放量\n" +
+          "⑥召回 LTR / 启动创意召回 5% 实验" },
+        { title: "场景渗透", body:
+          "①常规非 TA 回退深转：本周酷狗启动 10% 实验，小游戏耗显著 -31% / GMV 显著 -66%，大盘消耗不显著 -0.4%，GMV 不显著 -0.2%\n" +
+          "②外显非 TA 二跳：本周提需改造\n" +
+          "③视频互动样式：测试中，下周发布\n" +
+          "④分版位出价：陆续上线头客 / 调优中\n" +
+          "⑤向僵尸&末日开炮定投新闻&视频：扶持观察中" },
+        { title: "PC 小游戏", body:
+          "①头客频控优化方案完成，待重启实验\n" +
+          "②慢点击已放量 80% / 争取下周推全\n" +
+          "③PC 试玩 YYB 封面图展示问题修复 + 实验范围调整后，测试回归验证中\n" +
+          "④扫码框 QQ 设计稿已调整，待过媒体侧体验，预计跟 10 月版本上" },
+        { title: "IAA 预算", body: "PCAD 独立实验 20%，大盘 GMV 转不显著正向 / 商推评估可放量，下周一推 80%。" }
+      ]}
+    ]
+  };
+
+  var state = null;
+  var colorize = true;
+  var saveTimer = null;
+
+  /* ---------------- 工具函数 ---------------- */
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function fmt(text){
+    var s = esc(text);
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");        // **加粗**
+    if (colorize){                                          // 涨跌着色
+      s = s.replace(/([+-]\d+(?:\.\d+)?%)/g, function(m){
+        return '<span class="' + (m.charAt(0) === "-" ? "down" : "up") + '">' + m + "</span>";
+      });
+    }
+    return s;
+  }
+  function $ (sel, root){ return (root || document).querySelector(sel); }
+  function $$ (sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  /* ---------------- 渲染 ---------------- */
+  function render(){
+    var host = $("#sections");
+    host.innerHTML = state.sections.map(function(sec, si){
+      var bubbles = sec.bubbles.map(function(b, bi){
+        return '' +
+        '<div class="bubble" data-bi="' + bi + '">' +
+          '<div class="ops">' +
+            '<button data-op="up" title="上移">↑</button>' +
+            '<button data-op="down" title="下移">↓</button>' +
+            '<button data-op="del" class="del" title="删除">✕</button>' +
+          '</div>' +
+          '<div class="bubble-head">' +
+            '<span class="no">' + (bi + 1) + '</span>' +
+            '<div class="bubble-title" contenteditable="true" data-f="bubble-title">' + esc(b.title) + '</div>' +
+          '</div>' +
+          '<div class="bubble-body" contenteditable="true" data-f="bubble-body">' + fmt(b.body) + '</div>' +
+        '</div>';
+      }).join("");
+
+      return '' +
+      '<div class="block" data-si="' + si + '">' +
+        '<div class="sec-title" contenteditable="true" data-f="sec-title">' + esc(sec.title) + '</div>' +
+        '<div class="bubbles">' + bubbles + '</div>' +
+        '<button class="add-bubble" data-act="add-bubble">＋ 添加事项</button>' +
+        '<div class="sec-ops"><button data-act="del-section" class="sec-remove">删除本区块</button></div>' +
+      '</div>';
+    }).join("");
+
+    // 头部 / 底部
+    $$("#card .hero [data-k]").forEach(function(el){ el.textContent = state[el.dataset.k] || ""; });
+    $$("#card .foot [data-f]").forEach(function(el){
+      el.textContent = (el.dataset.f === "team") ? (state.team || "") : (state.footDate || "");
+    });
+  }
+
+  /* ---------------- DOM → state ---------------- */
+  function read(){
+    $$("#card .hero [data-k]").forEach(function(el){ state[el.dataset.k] = el.textContent.trim(); });
+    state.team = ($("#card .foot [data-f='team']") || {textContent:""}).textContent.trim();
+    state.footDate = ($("#card .foot [data-f='date']") || {textContent:""}).textContent.trim();
+
+    state.sections = $$("#card .block").map(function(blk){
+      return {
+        title: ($(".sec-title", blk) || {textContent:""}).textContent.trim(),
+        bubbles: $$(".bubble", blk).map(function(bu){
+          var bodyEl = $(".bubble-body", bu);
+          return {
+            title: ($(".bubble-title", bu) || {textContent:""}).textContent.trim(),
+            body: (bodyEl ? bodyEl.innerText : "").replace(/\u00a0/g, " ").replace(/\n{3,}/g, "\n\n").replace(/^\n+|\s+$/g, "")
+          };
+        })
+      };
+    });
+    // 去掉"内部 HTML 里含 <b>"的残留：innerText 已还原为纯文本 + **标记由用户输入保留
+    return state;
+  }
+
+  /* ---------------- 保存 / 读取 ---------------- */
+  function save(now){
+    clearTimeout(saveTimer);
+    var run = function(){
+      try { localStorage.setItem(LS_KEY, JSON.stringify(read())); } catch(e){}
+      var el = $("#saveState");
+      var d = new Date();
+      el.textContent = "已自动保存 " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+    };
+    if (now) run(); else saveTimer = setTimeout(run, 500);
+  }
+
+  function load(){
+    var raw = null;
+    try { raw = localStorage.getItem(LS_KEY); } catch(e){}
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT));
+    try {
+      var d = JSON.parse(raw);
+      if (!d.sections) throw 0;
+      d.badge = d.badge || ""; d.title = d.title || ""; d.sub = d.sub || "";
+      d.team = d.team || ""; d.footDate = d.footDate || "";
+      d.sections.forEach(function(s){ s.bubbles = s.bubbles || []; });
+      return d;
+    } catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
+  }
+
+  /* ---------------- 事件绑定 ---------------- */
+  function bind(){
+    var card = $("#card");
+
+    // 输入 → 自动保存
+    card.addEventListener("input", function(e){
+      if (e.target.closest("[contenteditable]")) save();
+    });
+
+    // 失焦 → 重新格式化正文（**加粗**、涨跌着色生效）
+    card.addEventListener("blur", function(e){
+      var el = e.target;
+      if (!el.closest) return;
+      if (el.classList && el.classList.contains("bubble-body")){
+        read();
+        var si = +el.closest(".block").dataset.si, bi = +el.closest(".bubble").dataset.bi;
+        var b = state.sections[si] && state.sections[si].bubbles[bi];
+        if (b) el.innerHTML = fmt(b.body);
+        save(true);
+      }
+      if (el.classList && el.classList.contains("bubble-title")) save(true);
+    }, true);
+
+    // 纯文本粘贴
+    card.addEventListener("paste", function(e){
+      var t = e.target;
+      if (!t.closest("[contenteditable]")) return;
+      e.preventDefault();
+      var text = (e.clipboardData || window.clipboardData).getData("text/plain") || "";
+      document.execCommand("insertText", false, text);
+    });
+
+    // 气泡操作：上移 / 下移 / 删除
+    card.addEventListener("click", function(e){
+      var btn = e.target.closest(".ops button");
+      if (btn){
+        read();
+        var bu = btn.closest(".bubble");
+        var si = +btn.closest(".block").dataset.si;
+        var bi = +bu.dataset.bi;
+        var arr = state.sections[si].bubbles;
+        var op = btn.dataset.op;
+        if (op === "del"){
+          if (!confirm("删除这个事项？")) return;
+          arr.splice(bi, 1);
+        } else if (op === "up" && bi > 0){
+          arr.splice(bi - 1, 0, arr.splice(bi, 1)[0]);
+        } else if (op === "down" && bi < arr.length - 1){
+          arr.splice(bi + 1, 0, arr.splice(bi, 1)[0]);
+        } else return;
+        render(); save(true);
+        return;
+      }
+
+      // 添加事项
+      var add = e.target.closest('[data-act="add-bubble"]');
+      if (add){
+        read();
+        var si2 = +add.closest(".block").dataset.si;
+        state.sections[si2].bubbles.push({ title: "新事项", body: "在这里输入内容…" });
+        render(); save(true);
+        return;
+      }
+
+      // 删除区块
+      var delSec = e.target.closest('[data-act="del-section"]');
+      if (delSec){
+        read();
+        var si3 = +delSec.closest(".block").dataset.si;
+        if (state.sections.length <= 1){ alert("至少保留一个区块（收入进展 / 事项进展）"); return; }
+        if (!confirm("删除整个区块「" + state.sections[si3].title + "」？")) return;
+        state.sections.splice(si3, 1);
+        render(); save(true);
+      }
+    });
+
+    // 工具栏
+    $("#themes").addEventListener("click", function(e){
+      var s = e.target.closest(".swatch");
+      if (s) applyTheme(s.dataset.theme);
+    });
+
+    /* ---- 字号 / 字色面板 ---- */
+    $("#popTypo").addEventListener("click", function(e){
+      var b = e.target.closest("[data-g]");
+      if (b){
+        typo[b.dataset.g] = b.dataset.v;
+        applyTypo(typo);
+        return;
+      }
+      var c = e.target.closest(".csw");
+      if (c){
+        var key = (c.dataset.for === "title") ? "titleColor" : "bodyColor";
+        typo[key] = (c.dataset.c === "__accent") ? accentColor() : c.dataset.c;
+        applyTypo(typo);
+      }
+    });
+    $$("#popTypo .csw-custom").forEach(function(inp){
+      inp.addEventListener("input", function(){
+        var key = (this.dataset.for === "title") ? "titleColor" : "bodyColor";
+        typo[key] = this.value;
+        applyTypo(typo);
+      });
+    });
+
+    /* ---- 更多菜单 ---- */
+    $("#btnMore").addEventListener("click", function(e){
+      e.stopPropagation();
+      var p = $("#morePanel");
+      var open = p.classList.toggle("open");
+      if (open) closePops(p);
+    });
+    $("#morePanel").addEventListener("click", function(e){
+      if (e.target.closest("label")) return;   // 勾选「涨跌着色」不关闭
+      $("#morePanel").classList.remove("open");
+    });
+
+    // 面板开合：字体面板
+    function placePop(pop, anchor){
+      pop.classList.add("open");
+      var r = anchor.getBoundingClientRect();
+      var w = pop.offsetWidth;
+      var left = Math.min(Math.max(8, r.right - w), window.innerWidth - w - 8);
+      var top = r.bottom + 8;
+      pop.style.left = left + "px";
+      pop.style.top = top + "px";
+    }
+    function closePops(except){
+      ["#popTypo", "#morePanel"].forEach(function(sel){
+        var el = $(sel);
+        if (el && el !== except) el.classList.remove("open");
+      });
+    }
+    $("#btnTypo").addEventListener("click", function(e){
+      e.stopPropagation();
+      var pop = $("#popTypo");
+      if (pop.classList.contains("open")){ pop.classList.remove("open"); return; }
+      placePop(pop, this);
+      closePops(pop);
+    });
+    document.addEventListener("click", function(e){
+      if (!e.target.closest("#popTypo") && !e.target.closest("#btnTypo") &&
+          !e.target.closest("#morePanel") && !e.target.closest("#btnMore")) closePops();
+    });
+
+    /* ---- 历史记录 ---- */
+    function openHist(){
+      calRef = new Date(); calSel = null;
+      renderCal();
+      $("#histModal").classList.add("open");
+    }
+    function closeHist(){ $("#histModal").classList.remove("open"); }
+    $("#btnHistory").addEventListener("click", openHist);
+    $("#btnCloseHist").addEventListener("click", closeHist);
+    $("#histModal").addEventListener("click", function(e){
+      if (e.target === this) closeHist();
+    });
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape"){ closeHist(); closePops(); }
+    });
+    $("#calPrev").addEventListener("click", function(){ calRef.setMonth(calRef.getMonth() - 1); renderCal(); });
+    $("#calNext").addEventListener("click", function(){ calRef.setMonth(calRef.getMonth() + 1); renderCal(); });
+    $("#calGrid").addEventListener("click", function(e){
+      var c = e.target.closest(".cal-cell.has");
+      if (!c) return;
+      calSel = (calSel === c.dataset.day) ? null : c.dataset.day;
+      renderCal();
+    });
+    $("#btnArchive").addEventListener("click", function(){
+      historyAdd("手动存档");
+      renderCal();
+    });
+    $("#histList").addEventListener("click", function(e){
+      var btn = e.target.closest(".mini");
+      if (!btn) return;
+      var id = btn.closest(".hist-item").dataset.id;
+      var list = histRead();
+      var item = null;
+      list.forEach(function(x){ if (x.id === id) item = x; });
+      if (!item) return;
+      var act = btn.dataset.act;
+      if (act === "load"){
+        if (!confirm("载入这条存档？当前内容会被覆盖。")) return;
+        state = JSON.parse(JSON.stringify(item.state));
+        if (item.typo) applyTypo(item.typo);
+        applyTheme(item.theme || "purple");
+        render(); save(true);
+        closeHist();
+        flash("已载入 " + (item.badge || item.title) + " 存档");
+      } else if (act === "dl"){
+        var blob = JSON.stringify(Object.assign({}, item.state, {theme: item.theme, typo: item.typo}), null, 2);
+        var nm = (item.title || "周报").replace(/[\\/:*?"<>|]/g, "") + "-" + String(item.badge || "").replace(/\s/g, "") + ".json";
+        download(new Blob([blob], {type:"application/json"}), nm);
+      } else if (act === "del"){
+        if (!confirm("删除这条存档？")) return;
+        histWrite(list.filter(function(x){ return x.id !== id; }));
+        renderCal();
+      }
+    });
+    $("#btnHistExport").addEventListener("click", function(){
+      var data = { type:"pcad-weekly-history", version:1, exportedAt:new Date().toISOString(), items: histRead() };
+      download(new Blob([JSON.stringify(data, null, 2)], {type:"application/json"}),
+        "周报历史备份-" + ymd(new Date()) + ".json");
+    });
+    $("#btnHistImport").addEventListener("click", function(){
+      var inp = document.createElement("input");
+      inp.type = "file"; inp.accept = ".json,application/json";
+      inp.onchange = function(){
+        var f = inp.files[0]; if (!f) return;
+        var fr = new FileReader();
+        fr.onload = function(){
+          try {
+            var d = JSON.parse(fr.result);
+            var items = d.items || (d.length !== undefined ? d : null);
+            if (!items || !items.length) throw 0;
+            var merged = items.concat(histRead());
+            var seen = {};
+            merged = merged.filter(function(x){ if (seen[x.id]) return false; seen[x.id] = 1; return true; });
+            merged.sort(function(a,b){ return b.ts - a.ts; });
+            histWrite(merged);
+            renderCal();
+            flash("已导入 " + items.length + " 条历史");
+          } catch(err){ alert("备份文件格式不对。"); }
+        };
+        fr.readAsText(f);
+      };
+      inp.click();
+    });
+    $("#btnHistClear").addEventListener("click", function(){
+      if (!confirm("清空全部历史存档？此操作不可恢复。")) return;
+      histWrite([]); renderCal();
+    });
+
+    $("#chkColor").addEventListener("change", function(){
+      colorize = this.checked; read(); render(); save(true);
+    });
+
+    $("#btnNew").addEventListener("click", function(){
+      if (!confirm("新建会清空当前内容（可先导出 JSON 备份），继续？")) return;
+      state = { badge:"M9W", title:"PCAD游戏周进展", sub:"2026.09.xx ｜ 统计周期 x.x–x.x", team:"PCAD游戏提收小分队",
+        footDate:"2026.09.xx", sections:[
+          { title:"一、收入进展", bubbles:[{ title:"整体收入", body:"日耗 xx 万，周同比 xx% / 月同比 xx%；AMS xx 万，周同比 xx% / 月同比 xx%。" }] },
+          { title:"二、事项进展", bubbles:[{ title:"事项一", body:"输入本周进展…" }] }
+        ]};
+      render(); save(true);
+    });
+
+    $("#btnExportJson").addEventListener("click", function(){
+      read();
+      var name = (state.title || "周报").replace(/[\\/:*?"<>|]/g, "") + "-" + (state.badge || "").replace(/\s/g,"") + ".json";
+      download(new Blob([JSON.stringify(Object.assign({}, state, {theme: theme, typo: typo}), null, 2)], {type:"application/json"}), name);
+    });
+
+    $("#btnImportJson").addEventListener("click", function(){
+      var inp = document.createElement("input");
+      inp.type = "file"; inp.accept = ".json,application/json";
+      inp.onchange = function(){
+        var f = inp.files[0]; if (!f) return;
+        var fr = new FileReader();
+        fr.onload = function(){
+          try {
+            var d = JSON.parse(fr.result);
+            if (!d.sections) throw 0;
+            state = d; render(); save(true);
+            if (d.theme) applyTheme(d.theme);
+            if (d.typo) applyTypo(d.typo);
+            $("#saveState").textContent = "已导入：" + f.name;
+          } catch(err){ alert("JSON 文件格式不对，请用本工具导出的文件。"); }
+        };
+        fr.readAsText(f);
+      };
+      inp.click();
+    });
+
+    $("#btnPrint").addEventListener("click", function(){
+      var old = document.title;
+      document.title = (state.title || "周报") + "-" + (state.badge || "");
+      window.print();
+      document.title = old;
+    });
+
+    $("#btnPng").addEventListener("click", function(){ exportImage("download"); });
+    $("#btnCopy").addEventListener("click", function(){ exportImage("copy"); });
+
+    // 快捷键：Cmd/Ctrl+S 导出图片
+    document.addEventListener("keydown", function(e){
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s"){ e.preventDefault(); exportImage("download"); }
+    });
+  }
+
+  /* ---------------- 导出图片 ---------------- */
+  function download(blob, name){
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+  }
+
+  function pageBg(){
+    return getComputedStyle(document.body).backgroundColor || "#f4f4f9";
+  }
+
+  function exportImage(mode){
+    read(); save(true);
+    historyAdd("导出图片", true);        // 每次导出自动留一条历史
+    var card = $("#card");
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    document.body.classList.add("exporting");
+
+    var scale = 2;
+    var finish = function(canvas){
+      document.body.classList.remove("exporting");
+      var name = (state.title || "周报").replace(/[\\/:*?"<>|]/g, "") + "-" + (state.badge || "").replace(/\s/g, "") + ".png";
+      if (mode === "copy" && navigator.clipboard && window.ClipboardItem){
+        canvas.toBlob(function(blob){
+          navigator.clipboard.write([new ClipboardItem({"image/png": blob})]).then(function(){
+            flash("已复制到剪贴板，可直接粘贴到群里");
+          }).catch(function(){
+            download(blob, name); flash("浏览器不允许直接复制，已改为下载图片");
+          });
+        }, "image/png");
+      } else {
+        canvas.toBlob(function(blob){ download(blob, name); flash("已导出并存入历史：" + name); }, "image/png");
+      }
+    };
+
+    if (window.html2canvas){
+      html2canvas(card, {
+        scale: scale, backgroundColor: pageBg(), useCORS: true, logging: false,
+        width: card.offsetWidth, height: card.scrollHeight + 16
+      }).then(finish).catch(function(err){
+        console.warn(err); document.body.classList.remove("exporting");
+        alert("导出失败，可改用「打印 / PDF」另存为 PDF，或用浏览器截图。");
+      });
+    } else {
+      // 兜底：不依赖第三方库（Safari / 文件被单独移动时）
+      setTimeout(function(){ svgFallback(card, scale, finish); }, 60);
+    }
+  }
+
+  function svgFallback(card, scale, done){
+    var w = card.offsetWidth, h = card.scrollHeight + 20;
+    var css = "";
+    $$("style").forEach(function(s){ css += s.textContent; });
+    var clone = card.cloneNode(true);
+    var wrap = document.createElement("div");
+    wrap.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+    wrap.style.cssText = "width:" + w + "px;padding:10px;background:" + pageBg() + ";font-family:'PingFang SC','Microsoft YaHei',sans-serif;";
+    wrap.innerHTML = '<style>' + css + '</style>';
+    wrap.appendChild(clone);
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + (w + 20) + '" height="' + h + '">' +
+              '<foreignObject width="100%" height="100%">' + new XMLSerializer().serializeToString(wrap) + '</foreignObject></svg>';
+    var img = new Image();
+    img.onload = function(){
+      var c = document.createElement("canvas");
+      c.width = (w + 20) * scale; c.height = h * scale;
+      var ctx = c.getContext("2d");
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      done(c);
+    };
+    img.onerror = function(){ alert("导出失败，请改用「打印 / PDF」。"); };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+
+  function flash(msg){
+    var el = $("#saveState");
+    var old = el.textContent;
+    el.style.color = "#157347";
+    el.textContent = msg;
+    setTimeout(function(){ el.style.color = ""; el.textContent = old; }, 3200);
+  }
+
+  /* ---------------- 启动 ---------------- */
+  state = load();
+  colorize = true;
+  var savedTheme = null, savedTypo = null;
+  try { savedTheme = localStorage.getItem(THEME_KEY); } catch(e){}
+  try { savedTypo = JSON.parse(localStorage.getItem(STYLE_KEY) || "null"); } catch(e){}
+  if (savedTypo) applyTypo(savedTypo, false);
+  if (state.theme && THEMES.indexOf(state.theme) >= 0){
+    applyTheme(state.theme);          // JSON 里带的主题优先
+  } else if (savedTheme && THEMES.indexOf(savedTheme) >= 0){
+    applyTheme(savedTheme);           // 其次用本机上次选择
+  } else {
+    applyTheme("purple", false);
+  }
+  applyTypo(typo, false);
+  render();
+  bind();
+  // 从 localStorage 恢复时给出提示
+  try { if (localStorage.getItem(LS_KEY)) $("#saveState").textContent = "已恢复上次编辑内容"; } catch(e){}
+})();
+</script>
+</body>
+</html>
