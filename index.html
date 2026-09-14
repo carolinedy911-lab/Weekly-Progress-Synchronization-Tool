@@ -253,6 +253,24 @@
   }
   .sec-ops button:hover{color:#d83931;background:#fff5f4;}
 
+  /* ================= 浮动加粗工具栏（选中文本时浮出） ================= */
+  .float-bar{
+    position:fixed;z-index:80;display:none;
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 8px 24px rgba(20,24,40,.18);
+    padding:3px;gap:2px;align-items:center;
+    user-select:none;
+  }
+  .float-bar.open{display:flex;}
+  .float-bar button{
+    appearance:none;border:none;background:transparent;
+    font-family:inherit;font-size:12.5px;line-height:1;color:var(--text-2);
+    padding:6px 10px;border-radius:7px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;min-width:30px;
+  }
+  .float-bar button:hover{background:var(--accent-bg);color:var(--accent);}
+  .float-bar button.on{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+
   /* ================= 弹出面板（字体 / 更多） ================= */
   .pop{
     position:fixed;z-index:70;display:none;width:292px;
@@ -362,12 +380,13 @@
   body.exporting .sec-ops,
   body.exporting .sec-remove,
   body.exporting .pop,
+  body.exporting .float-bar,
   body.exporting .menu-panel{display:none !important;}
   body.exporting [contenteditable]:focus{outline:none;background:transparent;}
   body.exporting #stage-pad-top{display:none;}
 
   @media print{
-    .bar,.hint,.ops,.add-bubble,.sec-ops,.pop,.menu-panel,.modal{display:none !important;}
+    .bar,.hint,.ops,.add-bubble,.sec-ops,.pop,.float-bar,.menu-panel,.modal{display:none !important;}
     body{background:#fff;}
     .stage{padding:0;}
     .card{width:430px;}
@@ -480,7 +499,7 @@
 <div class="stage" id="stage">
   <div class="hint" id="hint">
     直接在卡片上改字即可，改动<b>自动保存</b>在本机浏览器。
-    正文支持：<b>Enter</b> 换行 · <b>**文字**</b> 加粗 · 自动识别 <b>+8% / -3%</b> 着色 ·
+    正文支持：<b>Enter</b> 换行 · 选中文字后可点浮出的 <b>B</b> 工具按钮加粗 · 自动识别 <b>+8% / -3%</b> 着色 ·
     右上可调 <b>配色</b> / <b>字号</b> / <b>字色</b>；每次「导出图片」会自动<b>存入历史</b>，点「历史记录」可按日历翻看、随时载回。
   </div>
   <div id="stage-pad-top"></div>
@@ -501,6 +520,10 @@
 </div>
 
 <script src="lib/html2canvas.min.js"></script>
+<!-- ============ 浮动加粗工具栏（选中文本时浮出） ============ -->
+<div class="float-bar" id="floatBar">
+  <button data-fb="bold" title="加粗选中文字（也可用 ⌘/Ctrl+B）"><b>B</b> 加粗</button>
+</div>
 <script>
 (function(){
   "use strict";
@@ -726,6 +749,26 @@
     }
     return s;
   }
+  /* 把 contenteditable 的富文本还原成「纯文本 + **加粗** 标记」，
+     这样按钮加粗的 <b> 在失焦重新格式化时不会丢 */
+  function htmlToText(node){
+    var out = "";
+    Array.prototype.slice.call(node.childNodes).forEach(function(n){
+      if (n.nodeType === 3){ out += n.nodeValue; return; }
+      if (n.nodeType !== 1) return;
+      var tag = n.nodeName;
+      if (tag === "BR"){ out += "\n"; return; }
+      if (tag === "B" || tag === "STRONG"){ out += "**" + htmlToText(n) + "**"; return; }
+      if (tag === "DIV" || tag === "P"){ out += "\n" + htmlToText(n); return; }  // 块级元素 = 换行
+      out += htmlToText(n);   // span(涨跌色) / i / u 等只取文字，着色由 fmt 重新加
+    });
+    return out;
+  }
+  /* 清洗：去 nbsp、收敛空行、去首尾空白 */
+  function tidy(s){
+    return String(s == null ? "" : s)
+      .replace(/\u00a0/g, " ").replace(/\n{3,}/g, "\n\n").replace(/^\n+|\s+$/g, "");
+  }
   function $ (sel, root){ return (root || document).querySelector(sel); }
   function $$ (sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
@@ -778,7 +821,7 @@
           var bodyEl = $(".bubble-body", bu);
           return {
             title: ($(".bubble-title", bu) || {textContent:""}).textContent.trim(),
-            body: (bodyEl ? bodyEl.innerText : "").replace(/\u00a0/g, " ").replace(/\n{3,}/g, "\n\n").replace(/^\n+|\s+$/g, "")
+            body: bodyEl ? tidy(htmlToText(bodyEl)) : ""
           };
         })
       };
@@ -813,9 +856,97 @@
     } catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
   }
 
+  /* ---------------- 浮动加粗工具栏 ---------------- */
+  function bindFloatBar(){
+    var bar = $("#floatBar");
+    var lastRange = null;
+
+    // 选区变化时重新定位 / 显隐
+    function placeBar(){
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed){
+        bar.classList.remove("open"); lastRange = null; return;
+      }
+      var range = sel.getRangeAt(0);
+      var host = range.commonAncestorContainer;
+      var ce = (host.nodeType === 1 ? host : host.parentElement);
+      // 只在正文（.bubble-body）里浮出：标题本身已是粗体，加粗无意义
+      if (!ce || !ce.closest || !ce.closest(".bubble-body")){
+        bar.classList.remove("open"); lastRange = null; return;
+      }
+      var rect = range.getBoundingClientRect();
+      if (!rect || !rect.width || !rect.height){
+        bar.classList.remove("open"); lastRange = null; return;
+      }
+      lastRange = range.cloneRange();
+      bar.classList.add("open");
+      // 先显示再量尺寸，得到真实宽高后居中到选区上方
+      var bw = bar.offsetWidth, bh = bar.offsetHeight;
+      var left = rect.left + rect.width / 2 - bw / 2;
+      var top = rect.top - 8 - bh;                     // 默认浮在选区上方
+      if (top < 8) top = rect.bottom + 8;              // 顶部越界 → 改放下方
+      left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+      top  = Math.min(top, window.innerHeight - bh - 8);
+      bar.style.left = Math.round(left) + "px";
+      bar.style.top  = Math.round(top) + "px";
+      syncBoldState();
+    }
+
+    function syncBoldState(){
+      var sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return;
+      var node = sel.getRangeAt(0).commonAncestorContainer;
+      if (node.nodeType === 3) node = node.parentElement;
+      var isBold = !!(node && node.closest && node.closest("b,strong"));
+      bar.querySelector('[data-fb="bold"]').classList.toggle("on", isBold);
+    }
+
+    // 选区变化（节流，避免拖选时抖动）
+    var pt;
+    document.addEventListener("selectionchange", function(){
+      clearTimeout(pt);
+      pt = setTimeout(placeBar, 60);
+    });
+
+    // 关键：按下按钮时不夺走焦点，选区才不会丢
+    bar.addEventListener("mousedown", function(e){ e.preventDefault(); });
+    bar.addEventListener("touchstart", function(e){ e.preventDefault(); }, {passive:false});
+
+    bar.addEventListener("click", function(e){
+      var btn = e.target.closest("button");
+      if (!btn) return;
+      // 还原选区
+      if (lastRange){
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(lastRange);
+      }
+      var act = btn.dataset.fb;
+
+      if (act === "bold"){
+        try { document.execCommand("styleWithCSS", false, false); } catch(err){}  // 生成 <b> 而非 <span style>
+        document.execCommand("bold", false, null);
+        save(true);                 // read() 会把 <b> 存成 **标记**，失焦不会丢
+        syncBoldState();
+        setTimeout(placeBar, 0);    // 加粗后字形变宽，重新定位
+      }
+    });
+
+    // 滚动 / 缩放 → 收起（避免错位）
+    window.addEventListener("scroll", function(){ bar.classList.remove("open"); }, true);
+    window.addEventListener("resize", function(){ bar.classList.remove("open"); });
+    // 点击工具栏以外区域 → 重新判断显隐
+    document.addEventListener("mousedown", function(e){
+      if (!bar.contains(e.target)) setTimeout(placeBar, 0);
+    });
+  }
+
   /* ---------------- 事件绑定 ---------------- */
   function bind(){
     var card = $("#card");
+
+    // 浮动工具栏（选中文本时浮出）
+    bindFloatBar();
 
     // 输入 → 自动保存
     card.addEventListener("input", function(e){
